@@ -140,7 +140,10 @@ void *spak_load_file(const char *filename, uint32_t *file_size)
                 *file_size = current_handle->entries[i].size;
             }
 
-            fclose(pak_file);
+            if (fclose(pak_file))
+            {
+                goto pak_load_file_error;
+            }
             return file_data;
         }
     }
@@ -158,4 +161,109 @@ pak_load_file_error:
     }
 
     return NULL;
+}
+
+void spak_build_pak(const char **paths, const char **filenames, uint32_t file_count, const char *output_name)
+{
+    pak_header_t header;
+    FILE *output_file = NULL;
+    FILE *input_file = NULL;
+    uint32_t input_file_size = 12;
+    void *input_file_buffer = NULL;
+    spak_file_entry_t *file_entries = NULL;
+
+    memcpy(header.signature, "PACK", 4);
+    header.size = file_count * sizeof(spak_file_entry_t);
+    header.offset = 0;
+
+    output_file = fopen(output_name, "wb");
+    if (output_file == NULL)
+    {
+        goto build_error;
+    }
+
+    if (fwrite(&header, sizeof(pak_header_t), 1, output_file) != 1)
+    {
+        goto build_error;
+    }
+
+    file_entries = malloc(file_count * sizeof(spak_file_entry_t));
+    if (file_entries == NULL)
+    {
+        goto build_error;
+    }
+
+    for (uint32_t i = 0; i < file_count; ++i)
+    {
+        input_file = fopen(paths[i], "rb");
+        if (input_file == NULL)
+        {
+            goto build_error;
+        }
+
+        fseek(input_file, 0, SEEK_END);
+        input_file_size = ftell(input_file);
+        fseek(input_file, 0, SEEK_SET);
+
+        strncpy(file_entries[i].name, filenames[i], 56);
+        file_entries[i].offset = header.offset;
+        file_entries[i].size = input_file_size;
+
+        header.offset += input_file_size;
+
+        input_file_buffer = malloc(input_file_size);
+        if (input_file_buffer == NULL)
+        {
+            goto build_error;
+        }
+
+        if (fread(input_file_buffer, input_file_size, 1, input_file) != 1)
+        {
+            goto build_error;
+        }
+
+        if (fwrite(input_file_buffer, input_file_size, 1, output_file) != 1)
+        {
+            goto build_error;
+        }
+
+        free(input_file_buffer);
+
+        if (fclose(input_file) != 0)
+        {
+            goto build_error;
+        }
+    }
+
+    header.offset = ftell(output_file);
+
+    if (fwrite(file_entries, sizeof(spak_file_entry_t), file_count, output_file) != file_count)
+    {
+        goto build_error;
+    }
+
+    fseek(output_file, 0, SEEK_SET);
+
+    if (fwrite(&header, sizeof(pak_header_t), 1, output_file) != 1)
+    {
+        goto build_error;
+    }
+
+    return;
+
+build_error:
+    if (output_file != NULL)
+    {
+        fclose(output_file);
+    }
+    if (input_file != NULL)
+    {
+        fclose(input_file);
+    }
+    if (file_entries != NULL)
+    {
+        free(file_entries);
+    }
+
+    return;
 }

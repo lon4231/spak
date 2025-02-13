@@ -26,6 +26,8 @@ extern "C"
     void spak_set_current_handle(spak_handle_t *handle);
     void *spak_load_file(const char *filename, uint32_t *file_size);
 
+    void spak_build_pak(const char **paths, const char **filenames, uint32_t file_count, const char *output_name);
+
 #ifdef __cplusplus
 }
 #endif

@@ -17,6 +17,10 @@ spak_set_current_handle(handle);
 uint32_t file_size=0; // not necesary
 void*data=spak_load_file("filename",&file_size);
 
+// build .pak
+
+spak_build_pak(input_file_array,output_name_array,count,output_file_name);
+
 
 }
 
