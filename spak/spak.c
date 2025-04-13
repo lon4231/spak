@@ -119,7 +119,7 @@ void *spak_load_file(const char *filename, uint32_t *file_size)
                 goto pak_load_file_error;
             }
 
-            if (fseek(pak_file, current_handle->entries[i].offset, SEEK_SET) != 0)
+            if (fseek(pak_file, current_handle->entries[i].offset+sizeof(pak_header_t), SEEK_SET) != 0)
             {
                 goto pak_load_file_error;
             }
